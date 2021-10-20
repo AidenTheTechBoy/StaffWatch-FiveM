@@ -1,3 +1,29 @@
+local isStaff = false
+
+-- Staff Checker
+Citizen.CreateThread(function()
+    while true do
+        TriggerServerEvent('checkStaffStatus')
+        Wait(60000)
+    end
+end)
+
+RegisterNetEvent('setAsStaff')
+AddEventHandler('setAsStaff', function(bool)
+    isStaff = bool
+end)
+
+RegisterNetEvent('sendReportToChat')
+AddEventHandler('sendReportToChat', function(message)
+    if isStaff then
+        TriggerEvent('chat:addMessage', {        ----------------------------------------------------------------------------
+            color = {74, 54, 255},               --- Have a custom chat plugin? Want to change the text format of messages?
+            multiline = true,                          --- Edit the TriggerClientEvent() function so it fits your needs!
+            args = {"[StaffWatch-Report] "..message}   ----------------------------------------------------------------------------
+        })
+    end
+end)
+
 -- Command Help
 Citizen.CreateThread(function()
     TriggerEvent("chat:addSuggestion", "/report", "Report a player through Staff Watch", {
@@ -95,7 +121,7 @@ Citizen.CreateThread(function()
             end
 
             PushScaleformMovieFunction(scaleform, 'SHOW_SHARD_WASTED_MP_MESSAGE')
-            PushScaleformMovieFunctionParameterString('~y~Staff Warning')
+            PushScaleformMovieFunctionParameterString('~y~Staff Message')
             PushScaleformMovieFunctionParameterString(announcemessage)
             PopScaleformMovieFunctionVoid()
             DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255, 0)
