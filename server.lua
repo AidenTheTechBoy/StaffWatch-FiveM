@@ -115,7 +115,6 @@ Citizen.CreateThread(function()
         
         -- Send to API
         PerformHttpRequest(staffwatch .. '/api/updateServer', function(err, res, headers)
-            print('data sent')
             if err and err ~= 201 and not res then
                 if res then
                     print(res)
@@ -127,9 +126,15 @@ Citizen.CreateThread(function()
                     print('-------------------------------')
                 end
             end
+
+            local responseTable = json.decode(res)
+            for _, cmd in ipairs(responseTable.commandQueue) do
+                ExecuteCommand(cmd.command)
+            end
+
         end, 'POST', json.encode({secret = Config.secret, data = players}), { ["Content-Type"] = 'application/json' })
 
-        Wait(5000)
+        Wait(4000)
     end
 end)
 
@@ -181,7 +186,7 @@ function isStaff(source, callback)
         end
 
         if err then
-            sendMessage('An unknown error occured.', source)
+            sendMessage('An unknown error occured. ' .. err, source)
         end
 
     end, 'POST', json.encode({
@@ -208,13 +213,13 @@ RegisterCommand('report', function(source, args, rawCommand)
             return
         end
 
-        if err and err ~= 201 == 400 then
+        if err and err ~= 201 and err == 400 then
             sendMessage('Invalid arguments!', source)
             return
         end
 
         if err and err ~= 201 then
-            sendMessage('An unknown error occured.', source)
+            sendMessage('An unknown error occured. ' .. err, source)
         else
             sendMessage('Report succesfully sent!', source)
         end
@@ -237,7 +242,7 @@ RegisterCommand('trustscore', function(source, args, rawCommand)
         end
 
         if err then
-            sendMessage('An unknown error occured.', source)
+            sendMessage('An unknown error occured. ' .. err, source)
         end
 
     end, 'POST', json.encode({
@@ -279,18 +284,18 @@ function remoteAction(source, args, rawCommand, type)
             return
         end
 
-        if err and err ~= 201 == 400 then
+        if err and err ~= 201 and err == 400 then
             sendMessage('Invalid arguments!', source)
             return
         end
 
-        if err and err ~= 201 == 403 then
+        if err and err ~= 201 and err == 403 then
             sendMessage('Invalid permissions, check that you have claimed a player on the panel!', source)
             return
         end
 
         if err and err ~= 201 and err ~= 201 then
-            sendMessage('An unknown error occured.', source)
+            sendMessage('An unknown error occured. ' .. err, source)
         else
             sendMessage('Action succesful!', source)
         end
@@ -307,11 +312,36 @@ function remoteAction(source, args, rawCommand, type)
 
 end
 
+
+RegisterServerEvent('checkStaffStatus')
+AddEventHandler('checkStaffStatus', function()
+    local playerSrc = source
+    PerformHttpRequest(staffwatch .. '/api/isStaff', function(err, res, headers)
+        if res == 'true' then
+            TriggerClientEvent('setAsStaff', playerSrc, true)
+        else
+            TriggerClientEvent('setAsStaff', playerSrc, false)
+        end
+    end, 'POST', json.encode({
+        secret = Config.secret,
+        player_identifier = GetPlayerLicenseFromSource(playerSrc)
+    }), { ["Content-Type"] = 'application/json' })
+end)
+
+
 -- RCON Announce
 RegisterCommand("rcon_announce", function(source, args, rawCommand)
     if source == 0 or source == "console" then
         local message = table.concat(args, " ")
         sendMessage(message, -1)
+    end
+end, false)
+
+-- RCON Report
+RegisterCommand("rcon_report", function(source, args, rawCommand)
+    if source == 0 or source == "console" then
+        local message = table.concat(args, " ")
+        TriggerClientEvent('sendReportToChat', -1, message)
     end
 end, false)
 
