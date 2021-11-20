@@ -116,8 +116,8 @@ Citizen.CreateThread(function()
         -- Send to API
         PerformHttpRequest(staffwatch .. '/api/updateServer', function(err, res, headers)
             if err and err ~= 201 and not res then
-                if res then
-                    print(res)
+                if err == 429 then
+                    return
                 else
                     print('-------------------------------')
                     print('Failed to send data  to API - Returned')
@@ -134,7 +134,7 @@ Citizen.CreateThread(function()
 
         end, 'POST', json.encode({secret = Config.secret, data = players}), { ["Content-Type"] = 'application/json' })
 
-        Wait(4000)
+        Wait(5000)
     end
 end)
 
