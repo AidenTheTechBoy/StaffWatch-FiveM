@@ -128,9 +128,11 @@ Citizen.CreateThread(function()
             end
 
             local responseTable = json.decode(res)
-            for _, cmd in ipairs(responseTable.commandQueue) do
-                ExecuteCommand(cmd.command)
-            end
+	    if responseTable then
+                for _, cmd in ipairs(responseTable.commandQueue) do
+                    ExecuteCommand(cmd.command)
+                end
+	    end
 
         end, 'POST', json.encode({secret = Config.secret, data = players}), { ["Content-Type"] = 'application/json' })
 
