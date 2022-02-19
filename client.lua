@@ -1,31 +1,6 @@
-local isStaff = false
-
--- Staff Checker
-Citizen.CreateThread(function()
-    while true do
-        TriggerServerEvent('checkStaffStatus')
-        Wait(60000)
-    end
-end)
-
-RegisterNetEvent('setAsStaff')
-AddEventHandler('setAsStaff', function(bool)
-    isStaff = bool
-end)
-
-RegisterNetEvent('sendReportToChat')
-AddEventHandler('sendReportToChat', function(message)
-    if isStaff then
-        TriggerEvent('chat:addMessage', {        ----------------------------------------------------------------------------
-            color = {74, 54, 255},               --- Have a custom chat plugin? Want to change the text format of messages?
-            multiline = true,                          --- Edit the TriggerClientEvent() function so it fits your needs!
-            args = {"[StaffWatch-Report] "..message}   ----------------------------------------------------------------------------
-        })
-    end
-end)
-
 -- Command Help
 Citizen.CreateThread(function()
+    TriggerEvent("chat:addSuggestion", "/myprofile", "View your StaffWatch.app profile!")
     TriggerEvent("chat:addSuggestion", "/report", "Report a player through Staff Watch", {
         {name = "id", help = "Enter the server ID of the player you would like to report."},
         {name = "reason", help = "Enter the reason for the report."},
@@ -55,10 +30,51 @@ Citizen.CreateThread(function()
     TriggerEvent("chat:addSuggestion", "/trustscore", "Check your trust score through Staff Watch")
 end)
 
+-- Is User Staff?
+local isStaff = false
+
+-- Staff Checker
+Citizen.CreateThread(function()
+    while true do
+        TriggerServerEvent('checkStaffStatus')
+        Wait(GetRandomIntInRange(45, 75) * 1000) -- Randomize Time so Users Not Checked At The Same Time
+    end
+end)
+
+-- Set User as Staff
+RegisterNetEvent('setAsStaff')
+AddEventHandler('setAsStaff', function(bool)
+    isStaff = bool
+end)
+
+-- Send Reports to Staff Members
+RegisterNetEvent('sendReportToChat')
+AddEventHandler('sendReportToChat', function(message)
+    if isStaff then
+        TriggerEvent('chat:addMessage', {
+            color = {74, 54, 255},
+            multiline = true,
+            args = {"^3[Player Reported] ^1"..message}
+        })
+    end
+end)
+
+--  Minimap Notification -- Handler
+RegisterNetEvent('displayMinimapNotif')
+AddEventHandler('displayMinimapNotif', function(msg)
+    minimapNotif('~o~StaffWatch.app - ~b~' .. msg)
+end)
+
+-- Minimap Notification -- Function
+function minimapNotif(string)
+    SetNotificationTextEntry("STRING")
+    AddTextComponentString(string)
+    DrawNotification(true, false)
+end
+
 -- Warning Notifications
 local announce = false
 local announcemessage = ''
-
 RegisterNetEvent('displayStaffMsg')
 AddEventHandler('displayStaffMsg', function(reason)
     if not announce then
@@ -70,10 +86,29 @@ AddEventHandler('displayStaffMsg', function(reason)
     end
 end)
 
+-- Display Notification
+Citizen.CreateThread(function()
+    while true do
+        Wait(0)
+        if announce then
+            local scaleform = RequestScaleformMovie('mp_big_message_freemode')
+            while not HasScaleformMovieLoaded(scaleform) do
+                Citizen.Wait(0)
+            end
+            PushScaleformMovieFunction(scaleform, 'SHOW_SHARD_WASTED_MP_MESSAGE')
+            PushScaleformMovieFunctionParameterString('~y~Staff Message')
+            PushScaleformMovieFunctionParameterString(announcemessage)
+            PopScaleformMovieFunctionVoid()
+            DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255, 0)
+        else
+            Wait(500)
+        end
+    end
+end)
+
 -- Manage Being Frozen
 local frozenByStaff = false
 local wasFrozen = false
-
 RegisterNetEvent('setFrozen')
 AddEventHandler('setFrozen', function(frozen)
     frozenByStaff = frozen
@@ -95,6 +130,7 @@ AddEventHandler('setFrozen', function(frozen)
 
 end)
 
+-- Freeze User
 Citizen.CreateThread(function()
     while true do
         Wait(0)
@@ -110,32 +146,9 @@ Citizen.CreateThread(function()
     end
 end)
 
-Citizen.CreateThread(function()
-    while true do
-        Wait(0)
-        if announce then
-
-            local scaleform = RequestScaleformMovie('mp_big_message_freemode')
-            while not HasScaleformMovieLoaded(scaleform) do
-                Citizen.Wait(0)
-            end
-
-            PushScaleformMovieFunction(scaleform, 'SHOW_SHARD_WASTED_MP_MESSAGE')
-            PushScaleformMovieFunctionParameterString('~y~Staff Message')
-            PushScaleformMovieFunctionParameterString(announcemessage)
-            PopScaleformMovieFunctionVoid()
-            DrawScaleformMovieFullscreen(scaleform, 255, 255, 255, 255, 0)
-
-        else
-            Wait(500)
-        end
-    end
-end)
-
 -- Death Logs
 Citizen.CreateThread(function()
     local isDead = false
-    
     local Melee = { -1569615261, 1737195953, 1317494643, -1786099057, 1141786504, -2067956739, -868994466 }
     local Bullet = { 453432689, 1593441988, 584646201, -1716589765, 324215364, 736523883, -270015777, -1074790547, -2084633992, -1357824103, -1660422300, 2144741730, 487013001, 2017895192, -494615257, -1654528753, 100416529, 205991906, 1119849093 }
     local Knife = { -1716189206, 1223143800, -1955384325, -1833087301, 910830060, }
@@ -146,24 +159,18 @@ Citizen.CreateThread(function()
     local Gas = { -1600701090 }
     local Burn = { 615608432, 883325847, -544306709 }
     local Drown = { -10959621, 1936677264 }
-
     while true do
         Citizen.Wait(50)
         local ped = GetPlayerPed(-1)
-        
         if IsEntityDead(ped) and not isDead then
-            
 			local killer = GetPedKiller(ped)
             local KillerId = nil
-            
 			for id = 0, 255 do
                 if killer == GetPlayerPed(id) then
                     KillerId = GetPlayerServerId(id)
 				end				
             end
-
             local death = GetPedCauseOfDeath(ped)
-
             if checkArray (Melee, death) then
                 TriggerServerEvent('playerDiedFromPlayer', " meleed ", KillerId)
             elseif checkArray (Bullet, death) then
@@ -187,14 +194,11 @@ Citizen.CreateThread(function()
             else
                 TriggerServerEvent('playerDied', " was killed by an unknown force")
             end
-
             isDead = true
         end
-        
 		if not IsEntityDead(ped) then
 			isDead = false
         end
-        
 	end
 end)
 
