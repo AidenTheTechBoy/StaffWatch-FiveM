@@ -1,20 +1,7 @@
--------------------------------------------------------------------------------------------
-------------------------------------ADVANCED CONFIGURATION------------------------------------
--------------------------------------------------------------------------------------------
--- In-Game Message (For Advanced Users)
-function sendMessage(message, scope)
-    TriggerClientEvent('chat:addMessage', scope, {    ----------------------------------------------------------------------------
-           color = Config.messageColor,               --- Have a custom chat plugin? Want to change the text format of messages?
-           multiline = true,                          --- Edit the TriggerClientEvent() function so it fits your needs!
-           args = {"[StaffWatch] "..message}          ----------------------------------------------------------------------------
-    })
-end
-
-
--------------------------------------------------------------------------------------------
----------------DO NOT EDIT BELOW THIS LINE UNLESS YOU ARE A LEGIT DEVELOPER----------------
--------------------------------------------------------------------------------------------
-local staffwatch = "https://beta.staffwatch.app"
+----------------------------------------------------------------------------------------------------------------------
+---------------IF YOU EDIT BELOW THIS LINE, YOU MAY NOT CONTACT SUPPORT FOR ANY IN-GAME RELATED ISSUES----------------
+----------------------------------------------------------------------------------------------------------------------
+local staffwatch = "https://staffwatch.app"
 
 --Player Connection
 AddEventHandler("playerConnecting", function(name, setReason, deferrals)
@@ -39,7 +26,7 @@ AddEventHandler("playerConnecting", function(name, setReason, deferrals)
                 deferrals.done()
                 return
             else
-                deferrals.done("⚠️ Unable to connect to StaffWatch servers. Please try again later. ⚠️")
+                deferrals.done("⚠️ Unable to connect to StaffWatch servers. Please try again in a moment. ⚠️")
                 return
             end
         end
@@ -54,19 +41,20 @@ AddEventHandler("playerConnecting", function(name, setReason, deferrals)
             --------------------------------------
             ⚙️ Banned Using StaffWatch.app
             --------------------------------------
-            📞 Appeals: {appeals}
+            📞 Appeals and More
+            staffwatch.app/profile?key={key}
             ]]
             message = inputReplace(message, "reason", data.banReason)
             message = inputReplace(message, "expiration", data.banExpiration)
             message = inputReplace(message, "staff", data.staffName)
-            message = inputReplace(message, "appeals", Config.appeal)
+            message = inputReplace(message, "key", data.appealCode)
             deferrals.done(message)
             return
         end
         for x = 1, 6 do
-            deferrals.update("Verifying User 💙")
+            deferrals.update("Verifying profile via StaffWatch.app 💙")
             Wait(200)
-            deferrals.update("Verifying User 🧡")
+            deferrals.update("Verifying profile via StaffWatch.app 🧡")
             Wait(200)
         end
         deferrals.update("Verified! You're ready to play! ✅")
@@ -78,67 +66,68 @@ end)
 
 Citizen.CreateThread(function()
     while true do
-
-        local players = {}
-
-        -- Get All Players
-        for _, playerId in ipairs(GetPlayers()) do
-
-            local name = GetPlayerName(playerId)
-
-            local steamid = nil
-            local license = nil
-            local discord = nil
-            local xbl = nil
-            local liveid = nil
-            local ip = nil
-
-            for k,v in pairs(GetPlayerIdentifiers(playerId))do
-                if string.sub(v, 1, string.len("steam:")) == "steam:" then
-                    steamid = splitstring(v, ":")[2]
-                elseif string.sub(v, 1, string.len("license:")) == "license:" then
-                    license = splitstring(v, ":")[2]
-                elseif string.sub(v, 1, string.len("xbl:")) == "xbl:" then
-                    xbl  = splitstring(v, ":")[2]
-                elseif string.sub(v, 1, string.len("ip:")) == "ip:" then
-                    ip = splitstring(v, ":")[2]
-                elseif string.sub(v, 1, string.len("discord:")) == "discord:" then
-                    discord = splitstring(v, ":")[2]
-                elseif string.sub(v, 1, string.len("live:")) == "live:" then
-                    liveid = splitstring(v, ":")[2]
-                end
-            end
-
-            table.insert(players, {ingame_id = playerId, name = name, steamid = steamid, license = license, discord = discord, xbl = xbl, live = liveid, ip = ip})
-
-        end
-        
-        -- Send to API
-        PerformHttpRequest(staffwatch .. '/api/updateServer', function(err, res, headers)
-            if err and err ~= 201 and not res then
-                if err == 429 then
-                    return
-                else
-                    print('-------------------------------')
-                    print('Failed to send data  to API - Returned')
-                    print(err)
-                    print(res)
-                    print('-------------------------------')
-                end
-            end
-
-            local responseTable = json.decode(res)
-	    if responseTable then
-                for _, cmd in ipairs(responseTable.commandQueue) do
-                    ExecuteCommand(cmd.command)
-                end
-	    end
-
-        end, 'POST', json.encode({secret = Config.secret, data = players}), { ["Content-Type"] = 'application/json' })
-
+        Citizen.CreateThread(UpdateServerData)
         Wait(5000)
     end
 end)
+
+function UpdateServerData()
+    local players = {}
+
+    -- Get All Players
+    for _, playerId in ipairs(GetPlayers()) do
+        local name = GetPlayerName(playerId)
+
+        local steamid = nil
+        local license = nil
+        local discord = nil
+        local xbl = nil
+        local liveid = nil
+        local ip = nil
+
+        for k,v in pairs(GetPlayerIdentifiers(playerId))do
+            if string.sub(v, 1, string.len("steam:")) == "steam:" then
+                steamid = splitstring(v, ":")[2]
+            elseif string.sub(v, 1, string.len("license:")) == "license:" then
+                license = splitstring(v, ":")[2]
+            elseif string.sub(v, 1, string.len("xbl:")) == "xbl:" then
+                xbl  = splitstring(v, ":")[2]
+            elseif string.sub(v, 1, string.len("ip:")) == "ip:" then
+                ip = splitstring(v, ":")[2]
+            elseif string.sub(v, 1, string.len("discord:")) == "discord:" then
+                discord = splitstring(v, ":")[2]
+            elseif string.sub(v, 1, string.len("live:")) == "live:" then
+                liveid = splitstring(v, ":")[2]
+            end
+        end
+
+        table.insert(players, {ingame_id = playerId, name = name, steamid = steamid, license = license, discord = discord, xbl = xbl, live = liveid, ip = ip})
+    end
+    
+    -- Send to API
+    PerformHttpRequest(staffwatch .. '/api/updateServer', function(err, res, headers)
+        if err and err ~= 201 and not res then
+            if err == 0 then
+                print('Error occured while updating server, StaffWatch will try again in 5 seconds. This error should not be concerning unless it repeats every 5 seconds!')
+                return
+            end
+            if err ~= 429 then
+                print('-------------------------------')
+                print('Failed to send data  to API - Returned')
+                print(err)
+                print(res)
+                print('-------------------------------')
+            end
+            return
+        end
+
+        local responseTable = json.decode(res)
+        for _, cmd in ipairs(responseTable.commandQueue) do
+            ExecuteCommand(cmd.command)
+        end
+
+    end, 'POST', json.encode({secret = Config.secret, data = players}), { ["Content-Type"] = 'application/json' })
+end
 
 -- Commend Command
 RegisterCommand('commend', function(source, args, rawCommand)
@@ -171,6 +160,20 @@ RegisterCommand('unfreeze', function(source, args, rawCommand)
         TriggerClientEvent('setFrozen', id, false)
         sendMessage('User unfrozen!', source)
     end)
+end, false)
+
+RegisterCommand('myprofile', function(source, args, rawCommand)
+    local author = GetPlayerLicenseFromSource(source)
+    PerformHttpRequest(staffwatch .. '/api/generate-profile-access-key', function(err, res, headers)
+        if res then
+            sendChatMessage('Visit StaffWatch.app/profile and enter code: ' .. res, source)
+        elseif err then
+            sendMessage('An unknown error occured. ' .. err, source)
+        end
+    end, 'POST', json.encode({
+        secret = Config.secret,
+        player_identifier = author
+    }), { ["Content-Type"] = 'application/json' })
 end, false)
 
 function isStaff(source, callback)
@@ -299,7 +302,7 @@ function remoteAction(source, args, rawCommand, type)
         if err and err ~= 201 and err ~= 201 then
             sendMessage('An unknown error occured. ' .. err, source)
         else
-            sendMessage('Action succesful!', source)
+            sendMessage('Action successful!', source)
         end
 
     end, 'POST', json.encode({
@@ -335,7 +338,7 @@ end)
 RegisterCommand("rcon_announce", function(source, args, rawCommand)
     if source == 0 or source == "console" then
         local message = table.concat(args, " ")
-        sendMessage(message, -1)
+        sendChatMessage(message, -1)
     end
 end, false)
 
@@ -353,7 +356,7 @@ RegisterCommand("rcon_commend", function(source, args, rawCommand)
         local id = GetPlayerIDFromLicense(table.remove(args, 1))
         local name = GetPlayerName(id)
         local reason = table.concat(args, " ")
-        sendMessage(name .. " (" .. id .. ") has been commended for " .. reason, -1)
+        sendChatMessage(name .. " (" .. id .. ") has been commended for " .. reason, -1)
         TriggerClientEvent('displayStaffMsg', id, '~g~You were commended for: ' .. reason)
     end
 end, false)
@@ -364,7 +367,7 @@ RegisterCommand("rcon_warn", function(source, args, rawCommand)
         local id = GetPlayerIDFromLicense(table.remove(args, 1))
         local name = GetPlayerName(id)
         local reason = table.concat(args, " ")
-        sendMessage(name .. " (" .. id .. ") has been warned for " .. reason, -1)
+        sendChatMessage(name .. " (" .. id .. ") has been warned for " .. reason, -1)
         TriggerClientEvent('displayStaffMsg', id, 'You were warned for: ' .. reason)
     end
 end, false)
@@ -376,7 +379,7 @@ RegisterCommand("rcon_kick", function(source, args, rawCommand)
         local name = GetPlayerName(id)
         local reason = table.concat(args, " ")
         DropPlayer(id, 'You have been kicked for: ' .. reason)
-        sendMessage(name .. " (" .. id .. ") has been kicked for " .. reason, -1)
+        sendChatMessage(name .. " (" .. id .. ") has been kicked for " .. reason, -1)
     end
 end, false)
 
@@ -387,7 +390,7 @@ RegisterCommand("rcon_ban", function(source, args, rawCommand)
         local name = GetPlayerName(id)
         local reason = table.concat(args, " ")
         DropPlayer(id, 'You have been banned for: ' .. reason .. ' (Reconnect for additional information)')
-        sendMessage(name .. " (" .. id .. ") has been banned for " .. reason, -1)
+        sendChatMessage(name .. " (" .. id .. ") has been banned for " .. reason, -1)
     end
 end, false)
 
@@ -538,6 +541,18 @@ function GetPlayerLicenseFromSource(source)
         end
     end
     return playerLicense
+end
+
+function sendMessage(message, scope)
+    TriggerClientEvent('displayMinimapNotif', scope, message)
+end
+
+function sendChatMessage(message, scope)
+    TriggerClientEvent('chat:addMessage', scope, {
+           color = Config.messageColor,
+           multiline = true,
+           args = {"^3[StaffWatch] ^4"..message}
+    })
 end
 
 function splitstring(str, delim)
