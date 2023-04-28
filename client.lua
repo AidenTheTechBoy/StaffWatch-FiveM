@@ -1,5 +1,4 @@
 -- Command Help
-Citizen.CreateThread(function()
     TriggerEvent("chat:addSuggestion", "/myprofile", "View your StaffWatch.app profile!")
     TriggerEvent("chat:addSuggestion", "/report", "Report a player through Staff Watch", {
         {name = "id", help = "Enter the server ID of the player you would like to report."},
@@ -28,18 +27,17 @@ Citizen.CreateThread(function()
         {name = "id", help = "Enter the server ID of the player you would like to unfreeze."}
     })
     TriggerEvent("chat:addSuggestion", "/trustscore", "Check your trust score through Staff Watch")
-end)
 
 -- Is User Staff?
 local isStaff = false
 
 -- Staff Checker
-Citizen.CreateThread(function()
-    while true do
-        TriggerServerEvent('checkStaffStatus')
-        Wait(GetRandomIntInRange(45, 75) * 1000) -- Randomize Time so Users Not Checked At The Same Time
-    end
-end)
+-- Citizen.CreateThread(function()
+--     while true do
+--         TriggerServerEvent('checkStaffStatus')                                                               -- Depricated by Ziggy <3
+--         Wait(GetRandomIntInRange(45, 75) * 1000) -- Randomize Time so Users Not Checked At The Same Time
+--     end
+-- end)
 
 -- Set User as Staff
 RegisterNetEvent('setAsStaff')
