@@ -318,8 +318,7 @@ function remoteAction(source, args, rawCommand, type)
 end
 
 
-RegisterServerEvent('checkStaffStatus')
-AddEventHandler('checkStaffStatus', function()
+AddEventHandler('playerConnecting', function()
     local playerSrc = source
     PerformHttpRequest(staffwatch .. '/api/isStaff', function(err, res, headers)
         if res == 'true' then
